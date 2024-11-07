@@ -109,7 +109,12 @@ def extract_category_keywords(business_numbers):
         try:
             shop_name = driver.find_element(By.XPATH, '/html/body/section[2]/div/div/div[1]/div[1]/div/div[1]/div/a/h1').text
             
-            category_keywords = driver.find_element(By.XPATH, '/html/body/section[2]/div/div/div[1]/div[1]/div/table/tbody/tr[2]/td').text
+            try:
+                # 첫 번째 XPath에서 카테고리 키워드 찾기
+                category_keywords = driver.find_element(By.XPATH, '/html/body/section[2]/div/div/div[1]/div[1]/div/table/tbody/tr[2]/td').text
+            except NoSuchElementException:
+                # 첫 번째 XPath가 없을 경우 두 번째 XPath 시도
+                category_keywords = driver.find_element(By.XPATH, '/html/body/section[2]/div/div/div[1]/div[1]/div/table/tbody/tr[4]/td').text
 
             category_dict = {
                 "상호명": shop_name,
