@@ -1,0 +1,9 @@
+설치 라이브러리
+pip install fastapi uvicorn easyocr opencv-python selenium webdriver-manager pillow
+
+파일 실행
+uvicorn main:app --reload
+
+포스트맨 설정
+POST http://127.0.0.1:8000 
+key = file

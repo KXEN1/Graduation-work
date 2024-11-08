@@ -97,25 +97,45 @@ def process_image(img):
     return info_dict
 
 def extract_category_keywords(business_numbers):
+    
     driver = webdriver.Chrome()
+
     category_keywords_dict = {}
 
     for business_number in business_numbers:
         business_number_clean = business_number.replace("-", "")
+        
         address = 'https://bizno.net/article/' + business_number_clean
+        print(f"접속 중인 URL: {address}")
 
         driver.get(address)
 
+        # 상호명 추출
         try:
             shop_name = driver.find_element(By.XPATH, '/html/body/section[2]/div/div/div[1]/div[1]/div/div[1]/div/a/h1').text
-            
+        except NoSuchElementException:
+            shop_name = "상호명 없음"  
+        
+        # category_keywords 추출
+        category_keywords = None
+        try:
+            element = driver.find_element(By.XPATH, '/html/body/section[2]/div/div/div[1]/div[1]/div/table/tbody/tr[2]/td')
+            if all(label in element.text for label in ["대분류", "중분류", "소분류", "세분류", "세세분류"]):
+                category_keywords = element.text
+        except NoSuchElementException:
+            pass
+        
+        if not category_keywords:
             try:
-                # 첫 번째 XPath에서 카테고리 키워드 찾기
-                category_keywords = driver.find_element(By.XPATH, '/html/body/section[2]/div/div/div[1]/div[1]/div/table/tbody/tr[2]/td').text
+                element = driver.find_element(By.XPATH, '/html/body/section[2]/div/div/div[1]/div[1]/div/table/tbody/tr[4]/td')
+                if all(label in element.text for label in ["대분류", "중분류", "소분류", "세분류", "세세분류"]):
+                    category_keywords = element.text
             except NoSuchElementException:
-                # 첫 번째 XPath가 없을 경우 두 번째 XPath 시도
-                category_keywords = driver.find_element(By.XPATH, '/html/body/section[2]/div/div/div[1]/div[1]/div/table/tbody/tr[4]/td').text
-
+                pass
+        
+        if category_keywords:
+            print(f"업태: {category_keywords}")
+        
             category_dict = {
                 "상호명": shop_name,
                 "대분류": re.search(r"대분류\s*:\s*(.*?)(?=\s*중분류|$)", category_keywords),
@@ -128,14 +148,16 @@ def extract_category_keywords(business_numbers):
             for key in category_dict:
                 if isinstance(category_dict[key], re.Match):
                     category_dict[key] = category_dict[key].group(1).strip()
+                
                 elif category_dict[key] is not None:
                     category_dict[key] = category_dict[key].strip()
-
+            
             category_keywords_dict[business_number] = category_dict
-        except Exception as e:
-            category_keywords_dict[business_number] = None
+        else:
+            print(f"사업자 번호 {business_number}에 대한 정보를 찾을 수 없습니다.")
 
     driver.quit()
+
     return category_keywords_dict
 
 @app.post("/extract")
